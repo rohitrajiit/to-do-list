@@ -7,116 +7,123 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <style>
-        /* Custom styles */
-        .kanban-column {
-            min-height: 300px;
-            transition: background-color 0.2s ease;
-        }
-        .task {
-            cursor: grab;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            position: relative; /* Needed for absolute positioning */
-            padding: 0.75rem; /* p-3 */
-            padding-right: 2.5rem; /* Make space for delete button */
-            /* Increased bottom padding to prevent overlap */
-            padding-bottom: 3.5rem; /* Was 2.5rem, increased for more space */
-            min-height: 80px; /* Ensure a minimum height */
-        }
-        .task.dragging {
-            opacity: 0.5;
-            transform: scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            cursor: grabbing;
-        }
-        .drag-over {
-            background-color: rgba(167, 139, 250, 0.2);
-            border-style: dashed;
-            border-color: rgba(139, 92, 246, 0.5);
-        }
-        #message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            font-family: 'Inter', sans-serif;
-        }
-        #message-box.show {
-            opacity: 1;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Delete button style */
-        .delete-task-btn {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: #ef4444;
-            font-size: 1.1rem;
-            font-weight: bold;
+        /* Base styles from previous version */
+        .kanban-column { min-height: 300px; transition: background-color 0.2s ease; }
+        .task { cursor: grab; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; padding: 0.75rem; padding-right: 2.5rem; padding-bottom: 3.5rem; min-height: 80px; }
+        .task.dragging { opacity: 0.5; transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); cursor: grabbing; }
+        .drag-over { background-color: rgba(167, 139, 250, 0.2); border-style: dashed; border-color: rgba(139, 92, 246, 0.5); }
+        #message-box { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: #4CAF50; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; transition: opacity 0.5s ease-in-out; font-family: 'Inter', sans-serif; }
+        #message-box.show { opacity: 1; }
+        body { font-family: 'Inter', sans-serif; }
+        .delete-task-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; color: #ef4444; font-size: 1.1rem; font-weight: bold; cursor: pointer; padding: 0.2rem 0.4rem; line-height: 1; border-radius: 0.25rem; transition: background-color 0.2s ease, color 0.2s ease; }
+        .delete-task-btn:hover { background-color: #fee2e2; color: #b91c1c; }
+        .reset-column-btn { font-size: 0.75rem; padding: 0.2rem 0.5rem; margin-left: auto; background-color: #f87171; color: white; border-radius: 0.375rem; transition: background-color 0.2s ease; }
+        .reset-column-btn:hover { background-color: #dc2626; }
+        .column-header { display: flex; align-items: center; justify-content: space-between; border-bottom-width: 1px; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .task-dates { position: absolute; bottom: 0.5rem; left: 0.75rem; right: 0.75rem; font-size: 0.75rem; color: #6b7280; display: flex; justify-content: space-between; gap: 0.5rem; }
+        .task-date { white-space: nowrap; }
+        .task-text { word-break: break-word; overflow-wrap: break-word; padding-bottom: 0.5rem; }
+
+        /* --- New Styles for Tabs and Calendar --- */
+        .tab-button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 0.375rem 0.375rem 0 0; /* Rounded top corners */
+            background-color: #e5e7eb; /* gray-200 */
+            color: #4b5563; /* gray-600 */
             cursor: pointer;
-            padding: 0.2rem 0.4rem;
-            line-height: 1;
-            border-radius: 0.25rem;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
-        .delete-task-btn:hover {
-            background-color: #fee2e2;
-            color: #b91c1c;
+        .tab-button:hover {
+            background-color: #d1d5db; /* gray-300 */
         }
-        /* Reset button style */
-        .reset-column-btn {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.5rem;
-            margin-left: auto;
-            background-color: #f87171;
-            color: white;
-            border-radius: 0.375rem;
-            transition: background-color 0.2s ease;
+        .tab-button.active {
+            background-color: #f9fafb; /* gray-50 */
+            color: #1f2937; /* gray-800 */
+            border-color: #d1d5db; /* gray-300 */
+            border-bottom: 1px solid #f9fafb; /* Match background to hide bottom border */
+            position: relative;
+            top: 1px; /* Align with content border */
         }
-        .reset-column-btn:hover {
-            background-color: #dc2626;
+        .view-container {
+            display: none; /* Hide views by default */
+            background-color: #f9fafb; /* gray-50 */
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 0 0.375rem 0.375rem 0.375rem; /* Rounded bottom/right corners */
+            padding: 1.5rem; /* p-6 */
+            margin-top: -1px; /* Overlap with active tab bottom border */
         }
-        /* Column Header Flex */
-        .column-header {
+        .view-container.active {
+            display: block; /* Show active view */
+        }
+
+        /* Calendar Styles */
+        #calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px; /* Thin grid lines */
+            background-color: #d1d5db; /* Grid line color */
+            border: 1px solid #d1d5db;
+            margin-top: 1rem;
+        }
+        .calendar-header, .calendar-day {
+            background-color: #fff; /* White cells */
+            padding: 0.5rem;
+            text-align: center;
+            min-height: 100px; /* Minimum height for day cells */
+            position: relative; /* For potential absolute positioning of tasks */
+        }
+        .calendar-header {
+            font-weight: 600; /* semibold */
+            background-color: #f3f4f6; /* gray-100 */
+            padding: 0.75rem 0.5rem;
+        }
+        .calendar-day.other-month {
+            background-color: #f9fafb; /* gray-50 */
+            color: #9ca3af; /* gray-400 */
+        }
+        .calendar-day .day-number {
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* medium */
+            margin-bottom: 0.25rem;
+        }
+        .calendar-task {
+            display: block;
+            font-size: 0.75rem; /* text-xs */
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #3730a3; /* indigo-800 */
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem; /* rounded */
+            margin-top: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: default; /* Indicate non-interactive */
+        }
+        #calendar-controls {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            border-bottom-width: 1px;
-            padding-bottom: 0.5rem;
+            align-items: center;
             margin-bottom: 1rem;
         }
-        /* Task Date Styles */
-        .task-dates {
-            position: absolute;
-            bottom: 0.5rem;
-            left: 0.75rem; /* Corresponds to p-3 */
-            right: 0.75rem;
-            font-size: 0.75rem; /* text-xs */
-            color: #6b7280; /* text-gray-500 */
-            display: flex;
-            justify-content: space-between;
-            gap: 0.5rem;
+        #calendar-controls button {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
         }
-        .task-date {
-             white-space: nowrap;
+        #calendar-controls button:hover {
+            background-color: #4338ca; /* indigo-700 */
         }
-        /* Task text container */
-        .task-text {
-             /* Ensures text wraps and respects padding */
-             word-break: break-word;
-             overflow-wrap: break-word;
-             padding-bottom: 0.5rem; /* Add slight padding below text before dates */
+        #current-month-year {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* semibold */
+            color: #374151; /* gray-700 */
         }
 
     </style>
@@ -127,7 +134,7 @@
 <body class="bg-gradient-to-br from-purple-100 to-indigo-200 min-h-screen p-4 md:p-8">
 
     <div class="container mx-auto max-w-6xl">
-        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-8">My Kanban Board</h1>
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-8">My Task Tracker</h1>
 
         <div id="message-box">Task Completed! 🎉</div>
 
@@ -151,32 +158,45 @@
             <p id="task-error" class="text-red-500 text-sm mt-2 hidden">Please enter a task description.</p>
         </div>
 
+        <div class="mb-6">
+            <button id="tab-kanban" class="tab-button active" data-view="kanban-view">Kanban Board</button>
+            <button id="tab-calendar" class="tab-button" data-view="calendar-view">Calendar View</button>
+        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div id="todo" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-red-400">
-                <div class="column-header border-gray-300">
-                    <h2 class="text-lg font-semibold text-gray-600">To Do</h2>
-                    <button class="reset-column-btn" data-column-id="todo">Reset Column</button>
+        <div>
+            <div id="kanban-view" class="view-container active">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div id="todo" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-red-400">
+                        <div class="column-header border-gray-300">
+                            <h2 class="text-lg font-semibold text-gray-600">To Do</h2>
+                            <button class="reset-column-btn" data-column-id="todo">Reset Column</button>
+                        </div>
+                        <div class="space-y-3 min-h-[200px]"></div>
+                    </div>
+                    <div id="inprogress" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-yellow-400">
+                         <div class="column-header border-gray-300">
+                            <h2 class="text-lg font-semibold text-gray-600">In Progress</h2>
+                            <button class="reset-column-btn" data-column-id="inprogress">Reset Column</button>
+                         </div>
+                        <div class="space-y-3 min-h-[200px]"></div>
+                    </div>
+                    <div id="done" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-green-400">
+                         <div class="column-header border-gray-300">
+                            <h2 class="text-lg font-semibold text-gray-600">Done</h2>
+                            <button class="reset-column-btn" data-column-id="done">Reset Column</button>
+                         </div>
+                        <div class="space-y-3 min-h-[200px]"></div>
+                    </div>
                 </div>
-                <div class="space-y-3 min-h-[200px]">
-                    </div>
             </div>
 
-            <div id="inprogress" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-yellow-400">
-                 <div class="column-header border-gray-300">
-                    <h2 class="text-lg font-semibold text-gray-600">In Progress</h2>
-                    <button class="reset-column-btn" data-column-id="inprogress">Reset Column</button>
-                 </div>
-                <div class="space-y-3 min-h-[200px]">
-                    </div>
-            </div>
-
-            <div id="done" class="kanban-column bg-gray-100 p-4 rounded-lg shadow border-t-4 border-green-400">
-                 <div class="column-header border-gray-300">
-                    <h2 class="text-lg font-semibold text-gray-600">Done</h2>
-                    <button class="reset-column-btn" data-column-id="done">Reset Column</button>
-                 </div>
-                <div class="space-y-3 min-h-[200px]">
+            <div id="calendar-view" class="view-container">
+                <div id="calendar-controls">
+                    <button id="prev-month-btn">&lt; Prev</button>
+                    <h2 id="current-month-year">Month Year</h2>
+                    <button id="next-month-btn">Next &gt;</button>
+                </div>
+                <div id="calendar-grid">
                     </div>
             </div>
         </div>
@@ -184,73 +204,66 @@
 
     <script>
         // --- DOM Elements ---
-        const columns = document.querySelectorAll('.kanban-column > div:last-child');
+        const kanbanColumns = document.querySelectorAll('.kanban-column > div:last-child'); // Kanban content divs
         const addTaskBtn = document.getElementById('add-task-btn');
         const newTaskInput = document.getElementById('new-task-input');
-        const newTaskTargetDateInput = document.getElementById('new-task-target-date'); // Date input
+        const newTaskTargetDateInput = document.getElementById('new-task-target-date');
         const taskError = document.getElementById('task-error');
-        const todoColumnContent = document.querySelector('#todo > div:last-child');
-        const doneColumn = document.getElementById('done');
         const messageBox = document.getElementById('message-box');
         const resetButtons = document.querySelectorAll('.reset-column-btn');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const viewContainers = document.querySelectorAll('.view-container');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const currentMonthYearEl = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+
 
         // --- State ---
         let draggedTask = null;
+        let currentCalendarDate = new Date(); // For calendar view
 
         // --- Utility Functions ---
-
-        /**
-         * Gets today's date in YYYY-MM-DD format.
-         * @returns {string} Today's date string.
-         */
         function getTodayDateString() {
             const today = new Date();
             const offset = today.getTimezoneOffset();
             const localToday = new Date(today.getTime() - (offset*60*1000));
-            return localToday.toISOString().split('T')[0];
+            return localToday.toISOString().split('T')[0]; // YYYY-MM-DD
         }
+
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December"];
 
         // --- Core Functions ---
 
         /**
-         * Creates a new task HTML element with dates and delete button.
-         * @param {string} text - The text content of the task.
-         * @param {string} id - The unique ID for the task.
-         * @param {string | null} targetDate - The target date string (YYYY-MM-DD) or null.
-         * @param {string | null} completedDate - The completed date string (YYYY-MM-DD) or null.
-         * @returns {HTMLElement} The created task element.
+         * Creates a Kanban task element.
          */
         function createTaskElement(text, id, targetDate, completedDate) {
             const task = document.createElement('div');
-            task.classList.add('task', 'bg-white', 'rounded-md', 'shadow', 'border', 'border-gray-200'); // Removed p-3 here, handled in style block
+            task.classList.add('task', 'bg-white', 'rounded-md', 'shadow', 'border', 'border-gray-200');
             task.setAttribute('draggable', 'true');
             task.setAttribute('id', id);
             if (targetDate) task.dataset.targetDate = targetDate;
             if (completedDate) task.dataset.completedDate = completedDate;
 
-            // Create container for the main task text
             const taskTextContainer = document.createElement('div');
             taskTextContainer.classList.add('task-text');
-            taskTextContainer.textContent = text; // Set text content here
-            task.appendChild(taskTextContainer); // Append text container
+            taskTextContainer.textContent = text;
+            task.appendChild(taskTextContainer);
 
-            // Create container for dates (absolutely positioned)
             const datesContainer = document.createElement('div');
             datesContainer.classList.add('task-dates');
-
             const targetDateSpan = document.createElement('span');
             targetDateSpan.classList.add('task-date', 'target-date');
             targetDateSpan.textContent = targetDate ? `Target: ${targetDate}` : '';
             datesContainer.appendChild(targetDateSpan);
-
             const completedDateSpan = document.createElement('span');
             completedDateSpan.classList.add('task-date', 'completed-date');
             completedDateSpan.textContent = completedDate ? `Completed: ${completedDate}` : '';
             datesContainer.appendChild(completedDateSpan);
-
             task.appendChild(datesContainer);
 
-            // Create delete button (absolutely positioned)
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('delete-task-btn');
             deleteBtn.innerHTML = '&times;';
@@ -258,7 +271,6 @@
             deleteBtn.addEventListener('click', handleDeleteTask);
             task.appendChild(deleteBtn);
 
-            // Add drag event listeners
             task.addEventListener('dragstart', handleDragStart);
             task.addEventListener('dragend', handleDragEnd);
 
@@ -266,9 +278,7 @@
         }
 
         /**
-         * Updates the completed date display on a task element.
-         * @param {HTMLElement} taskElement - The task element to update.
-         * @param {string | null} dateString - The completed date (YYYY-MM-DD) or null.
+         * Updates completed date display on a task element.
          */
         function updateCompletedDateDisplay(taskElement, dateString) {
              const completedDateSpan = taskElement.querySelector('.completed-date');
@@ -282,20 +292,17 @@
              }
         }
 
-
         /**
-         * Saves tasks (including dates) to localStorage.
+         * Saves all tasks from Kanban columns to localStorage.
          */
         function saveTasks() {
             const tasks = {};
-            columns.forEach(columnDiv => {
+            kanbanColumns.forEach(columnDiv => {
                 const columnId = columnDiv.parentElement.id;
                 tasks[columnId] = [];
                 columnDiv.querySelectorAll('.task').forEach(task => {
-                     // Get text from the dedicated text container
                     const taskTextContainer = task.querySelector('.task-text');
                     const taskText = taskTextContainer ? taskTextContainer.textContent : '';
-
                     tasks[columnId].push({
                         id: task.id,
                         text: taskText,
@@ -305,13 +312,19 @@
                 });
             });
             localStorage.setItem('kanbanTasks', JSON.stringify(tasks));
+             // Refresh calendar if it's the active view
+            if (document.getElementById('calendar-view').classList.contains('active')) {
+                 renderCalendar();
+            }
         }
 
-
         /**
-         * Loads tasks (including dates) from localStorage.
+         * Loads tasks into the Kanban board from localStorage.
          */
-        function loadTasks() {
+        function loadTasksToKanban() {
+            // Clear existing tasks first to avoid duplication on load
+            kanbanColumns.forEach(col => col.innerHTML = '');
+
             const savedTasks = localStorage.getItem('kanbanTasks');
             if (savedTasks) {
                 try {
@@ -320,18 +333,21 @@
                         const columnContentDiv = document.querySelector(`#${columnId} > div:last-child`);
                         if (columnContentDiv) {
                             tasks[columnId].forEach(taskData => {
-                                if (taskData.id && !document.getElementById(taskData.id)) {
-                                    const taskElement = createTaskElement(
-                                        taskData.text,
-                                        taskData.id,
-                                        taskData.targetDate || null,
-                                        taskData.completedDate || null
-                                    );
-                                    columnContentDiv.appendChild(taskElement);
+                                if (taskData.id) { // Check if taskData has an id
+                                     // Ensure task doesn't already exist in DOM (extra safety)
+                                    if (!document.getElementById(taskData.id)) {
+                                        const taskElement = createTaskElement(
+                                            taskData.text,
+                                            taskData.id,
+                                            taskData.targetDate || null,
+                                            taskData.completedDate || null
+                                        );
+                                        columnContentDiv.appendChild(taskElement);
+                                    }
+                                } else {
+                                    console.warn("Task data missing ID:", taskData);
                                 }
                             });
-                        } else {
-                             console.warn(`Could not find content div for column: #${columnId} > div:last-child`);
                         }
                     });
                 } catch (error) {
@@ -340,21 +356,109 @@
             }
         }
 
-
         /**
-         * Displays a temporary message to the user.
+         * Gets all pending tasks (not in 'Done' column) from localStorage.
+         * @returns {Array} Array of pending task objects.
          */
-        function showMessage(message, duration = 2000) {
-            messageBox.textContent = message;
-            messageBox.classList.add('show');
-            setTimeout(() => {
-                messageBox.classList.remove('show');
-            }, duration);
+        function getPendingTasks() {
+            const savedTasks = localStorage.getItem('kanbanTasks');
+            let pendingTasks = [];
+            if (savedTasks) {
+                try {
+                    const tasks = JSON.parse(savedTasks);
+                    // Iterate through 'todo' and 'inprogress' columns
+                    ['todo', 'inprogress'].forEach(columnId => {
+                        if (tasks[columnId]) {
+                            pendingTasks = pendingTasks.concat(tasks[columnId]);
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error parsing tasks for calendar:", error);
+                }
+            }
+            return pendingTasks.filter(task => task.targetDate); // Only include tasks with a target date
         }
 
 
         /**
-         * Triggers the confetti animation.
+         * Renders the calendar grid for the current month and populates it with tasks.
+         */
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth(); // 0-indexed
+
+            currentMonthYearEl.textContent = `${monthNames[month]} ${year}`;
+            calendarGrid.innerHTML = ''; // Clear previous grid
+
+            // Add headers
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            daysOfWeek.forEach(day => {
+                const headerCell = document.createElement('div');
+                headerCell.classList.add('calendar-header');
+                headerCell.textContent = day;
+                calendarGrid.appendChild(headerCell);
+            });
+
+            // Calendar calculation
+            const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun, 1=Mon,...
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            const pendingTasks = getPendingTasks(); // Get tasks to display
+
+            // Add empty cells for days before the 1st
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.classList.add('calendar-day', 'other-month');
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            // Add cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('calendar-day');
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // YYYY-MM-DD
+                dayCell.dataset.date = dateString; // Store date for task matching
+
+                const dayNumber = document.createElement('div');
+                dayNumber.classList.add('day-number');
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                // Find and add tasks for this day
+                const tasksForDay = pendingTasks.filter(task => task.targetDate === dateString);
+                tasksForDay.forEach(task => {
+                    const taskEl = document.createElement('div');
+                    taskEl.classList.add('calendar-task');
+                    taskEl.textContent = task.text;
+                    taskEl.title = task.text; // Tooltip for full text
+                    dayCell.appendChild(taskEl);
+                });
+
+                calendarGrid.appendChild(dayCell);
+            }
+
+             // Add empty cells for days after the last day of the month to fill the grid
+             const totalCells = firstDayOfMonth + daysInMonth;
+             const remainingCells = (7 - (totalCells % 7)) % 7; // Calculate remaining cells needed
+             for (let i = 0; i < remainingCells; i++) {
+                 const emptyCell = document.createElement('div');
+                 emptyCell.classList.add('calendar-day', 'other-month');
+                 calendarGrid.appendChild(emptyCell);
+             }
+        }
+
+
+        /**
+         * Displays a temporary message.
+         */
+        function showMessage(message, duration = 2000) {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => { messageBox.classList.remove('show'); }, duration);
+        }
+
+        /**
+         * Triggers confetti.
          */
         function triggerConfetti() {
              confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#ffffff'] });
@@ -373,18 +477,18 @@
         // --- Event Handlers ---
 
         /**
-         * Handles deleting a single task.
+         * Handles deleting a task.
          */
         function handleDeleteTask(e) {
             const taskToDelete = e.target.closest('.task');
             if (taskToDelete) {
                 taskToDelete.remove();
-                saveTasks();
+                saveTasks(); // Save and potentially refresh calendar
             }
         }
 
         /**
-         * Handles resetting (clearing) all tasks in a column.
+         * Handles resetting a Kanban column.
          */
         function handleResetColumn(e) {
             const columnId = e.target.getAttribute('data-column-id');
@@ -392,19 +496,17 @@
                 const columnContentDiv = document.querySelector(`#${columnId} > div:last-child`);
                 if (columnContentDiv) {
                     columnContentDiv.innerHTML = '';
-                    saveTasks();
+                    saveTasks(); // Save and potentially refresh calendar
                 }
             }
         }
 
-
         /**
-         * Handles the start of a drag operation.
+         * Handles drag start for Kanban tasks.
          */
         function handleDragStart(e) {
             if (e.target.classList.contains('delete-task-btn')) {
-                 e.preventDefault();
-                 return;
+                 e.preventDefault(); return;
             }
             draggedTask = e.target;
             setTimeout(() => e.target.classList.add('dragging'), 0);
@@ -413,7 +515,7 @@
         }
 
         /**
-         * Handles the end of a drag operation.
+         * Handles drag end for Kanban tasks.
          */
         function handleDragEnd(e) {
             if (draggedTask && draggedTask.classList) {
@@ -423,7 +525,7 @@
         }
 
         /**
-         * Handles when a dragged item is over a potential drop zone.
+         * Handles drag over for Kanban columns.
          */
         function handleDragOver(e) {
             e.preventDefault();
@@ -436,8 +538,8 @@
              }
         }
 
-         /**
-         * Handles when a dragged item leaves a potential drop zone.
+        /**
+         * Handles drag leave for Kanban columns.
          */
         function handleDragLeave(e) {
             const column = e.target.closest('.kanban-column');
@@ -447,8 +549,7 @@
         }
 
         /**
-         * Handles the drop event - UPDATED FOR DATES.
-         * @param {DragEvent} e - The drag event object.
+         * Handles drop event for Kanban columns.
          */
         function handleDrop(e) {
             e.preventDefault();
@@ -475,46 +576,74 @@
                     updateCompletedDateDisplay(draggedTask, null);
                 }
 
-                saveTasks();
+                saveTasks(); // Save and potentially refresh calendar
             }
         }
 
-
         /**
-         * Handles adding a new task - UPDATED FOR DATES.
+         * Handles adding a new task.
          */
         function handleAddTask() {
             const taskText = newTaskInput.value.trim();
             let targetDate = newTaskTargetDateInput.value;
-
-            if (!targetDate) {
-                targetDate = getTodayDateString();
-            }
+            if (!targetDate) targetDate = getTodayDateString();
 
             if (taskText) {
                 taskError.classList.add('hidden');
                 const taskId = 'task-' + Date.now();
                 const newTask = createTaskElement(taskText, taskId, targetDate, null);
+                // Add to the 'todo' column's content div
                 document.querySelector('#todo > div:last-child').appendChild(newTask);
-
                 newTaskInput.value = '';
                 newTaskTargetDateInput.value = '';
-
-                saveTasks();
+                saveTasks(); // Save and potentially refresh calendar
             } else {
                  taskError.classList.remove('hidden');
             }
         }
 
+        /**
+         * Handles switching between views (Kanban/Calendar).
+         */
+        function handleSwitchView(e) {
+            const targetButton = e.target.closest('.tab-button');
+            if (!targetButton || targetButton.classList.contains('active')) {
+                return; // Clicked outside buttons or on the active one
+            }
+
+            const targetViewId = targetButton.getAttribute('data-view');
+
+            // Update button states
+            tabButtons.forEach(button => button.classList.remove('active'));
+            targetButton.classList.add('active');
+
+            // Update view visibility
+            viewContainers.forEach(container => {
+                if (container.id === targetViewId) {
+                    container.classList.add('active');
+                    // If switching to calendar, render it
+                    if (targetViewId === 'calendar-view') {
+                        renderCalendar();
+                    }
+                } else {
+                    container.classList.remove('active');
+                }
+            });
+        }
+
         // --- Event Listeners ---
+
+        // Kanban drag/drop listeners
         document.querySelectorAll('.kanban-column').forEach(column => {
             column.addEventListener('dragover', handleDragOver);
             column.addEventListener('dragleave', handleDragLeave);
             column.addEventListener('drop', handleDrop);
         });
 
+        // Add Task button listener
         addTaskBtn.addEventListener('click', handleAddTask);
 
+        // Enter key listeners for form
         newTaskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleAddTask();
             if (!taskError.classList.contains('hidden')) taskError.classList.add('hidden');
@@ -523,12 +652,33 @@
             if (e.key === 'Enter') handleAddTask();
         });
 
+        // Kanban Reset buttons listeners
         resetButtons.forEach(button => {
             button.addEventListener('click', handleResetColumn);
         });
 
+        // Tab switching listeners
+        tabButtons.forEach(button => {
+            button.addEventListener('click', handleSwitchView);
+        });
+
+        // Calendar navigation listeners
+        prevMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
+        nextMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+
         // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', loadTasks);
+        document.addEventListener('DOMContentLoaded', () => {
+             loadTasksToKanban(); // Load tasks into Kanban view on page load
+             // Optionally render calendar initially if it's the default view or needed
+             // renderCalendar();
+        });
 
     </script>
 
